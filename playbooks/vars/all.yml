@@ -21,3 +21,4 @@ default_gating_overrides:
       reseller_admin_role: ResellerAdmin
     compute-feature-enabled:
       personality: false
+  cinder_service_backup_program_enabled: true
