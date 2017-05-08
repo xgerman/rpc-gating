@@ -3,7 +3,7 @@
 rc=0
 venv=.lintvenv
 # exclude venv and git dir from linting
-fargs=(. -not -path \*${venv}\* -not -path \*.git\*)
+fargs=(-not -path \*${venv}\* -not -path \*.git\*)
 
 trap cleanup EXIT
 cleanup(){
@@ -24,7 +24,7 @@ check_jjb(){
     || { echo "jenkins-jobs unavailble, please install jenkins-job-builder from pip"
          return
        }
-  jenkins-jobs -v test -r rpc_jobs >/dev/null \
+  jenkins-jobs test -r rpc_jobs >/dev/null \
     && echo "JJB Syntax ok" \
     || { echo "JJB Syntax fail"; rc=1; }
 }
@@ -34,7 +34,7 @@ check_groovy(){
     || { echo "groovy unavailble, please install groovy (apt:groovy2 brew:groovy)"
          return
        }
-  groovy scripts/syntax.groovy $(find ${fargs[@]} -name \*.groovy)
+  groovy scripts/syntax.groovy $(find rpc_jobs pipeline_steps ${fargs[@]} -name \*.groovy)
 
   if [[ $? == 0 ]]
   then
@@ -64,7 +64,7 @@ check_bash(){
     bash -n $script \
       && echo "Bash syntax ok: $script" \
       || { echo "Bash syntax fail $script"; rc=1; }
-  done < <(find ${fargs[@]} -iname \*.sh)
+  done < <(find . ${fargs[@]} -iname \*.sh)
 }
 
 check_python(){
