@@ -24,32 +24,9 @@ check_jjb(){
     || { echo "jenkins-jobs unavailble, please install jenkins-job-builder from pip"
          return
        }
-  jenkins-jobs test -r rpc_jobs >/dev/null \
+  jenkins-jobs -v test -r rpc_jobs >/dev/null \
     && echo "JJB Syntax ok" \
     || { echo "JJB Syntax fail"; rc=1; }
-}
-
-# This pulls job.dsl from jjb templates so they can be checked for groovy syntax
-extract_groovy_from_jjb(){
-  mkdir -p tmp_groovy
-  pushd rpc_jobs
-  for i in *.yml
-  do
-    python <<EOF
-import yaml
-with open("${i}",'r') as inf:
-  jjb = yaml.load(inf)
-for item in jjb:
-  key = item.keys()[0]
-  if key in ("job", "job-template") and 'dsl' in item[key]:
-    outfile="${i}".split('.')[0]
-    with open("../tmp_groovy/{outfile}-{item}.groovy".format(
-        outfile=outfile, item=item[key]['name']), "w") as outf:
-      outf.write(item[key]['dsl'])
-EOF
-  done
-  popd
-  sed -i bk -e 's/{{/{/g' -e 's/}}/}/g' tmp_groovy/*
 }
 
 check_groovy(){
@@ -57,8 +34,7 @@ check_groovy(){
     || { echo "groovy unavailble, please install groovy (apt:groovy2 brew:groovy)"
          return
        }
-  extract_groovy_from_jjb
-  groovy scripts/syntax.groovy pipeline_steps/*.groovy tmp_groovy/*.groovy
+  groovy scripts/syntax.groovy $(find ${fargs[@]} -name \*.groovy)
 
   if [[ $? == 0 ]]
   then
