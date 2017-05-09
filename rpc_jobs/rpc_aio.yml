@@ -82,6 +82,19 @@
     jobs:
       - 'RPC-AIO_{series}-{context}-{ztrigger}'
 
+- project:
+    name: "test project for pipeline-scm"
+    jobs:
+      - 'RPC-AIO_{series}-{context}-{ztrigger}':
+          series: master
+          branch: master
+          context: pipelinescmtest
+          ztrigger: ondemand
+          branches: "do_not_build_on_pr"
+          CRON: ""
+          TRIGGER_USER_VARS: "maas_use_api: false"
+          IMAGE: "Ubuntu 16.04 LTS (Xenial Xerus) (PVHVM)"
+
 - job-template:
     # DEFAULTS
     STAGES: >-
