@@ -327,18 +327,18 @@ def String gen_instance_name(String prefix="AUTO"){
 
 def archive_artifacts(String build_type = "AIO"){
   try{
-    vars = [
-      artifacts_basedir: env.WORKSPACE,
-      build_tag: env.BUILD_TAG,
-    ]
     if ( build_type == "MNAIO" ){
       args = [
         "-i /opt/ansible-static-inventory.ini",
       ]
-      vars["hosts"] = "all"
+      vars = [
+        target_hosts: "all",
+      ]
     } else {
       args = []
-      vars["hosts"] = "localhost"
+      vars = [
+        target_hosts: "localhost",
+      ]
     }
     dir("rpc-gating/playbooks"){
       venvPlaybook(
