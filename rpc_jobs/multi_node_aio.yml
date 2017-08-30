@@ -25,6 +25,7 @@
       - newton:
           branch: newton
           SERIES_USER_VARS: |
+            tempest_public_subnet_cidr: "172.29.248.0/22"
             tempest_test_sets: 'all'
             lxc_container_vg_name: "USE_DIR_NOT_VG"
             glance_default_store: "swift"
