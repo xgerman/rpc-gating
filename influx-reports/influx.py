@@ -5,7 +5,6 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from copy import deepcopy
 import logging
-import math
 import os
 import sys
 
@@ -80,7 +79,7 @@ class SubunitContext():
         self.output_path = output_path
 
     def __enter__(self):
-        self.output_stream = open(self.output_path, 'wb+')
+        self.output_stream = open(self.output_path, "wb+")
         self.output = StreamResultToBytes(self.output_stream)
         self.output.startTestRun()
         return self.output
@@ -89,15 +88,12 @@ class SubunitContext():
         self.output.stopTestRun()
         self.output_stream.close()
 
-    def status(self, *args, **kwargs):
-        self.output.status(*args, **kwargs)
-
 
 def generate_reports(data, max_downtime=100, ymlfile=None, subunitfile=None):
     yml_report = yaml.dump(data, default_flow_style=False)
     logging.info(yml_report)
     if ymlfile:
-        with open(ymlfile, 'w+') as output_file:
+        with open(ymlfile, "w+") as output_file:
             output_file.write("---\n")
             output_file.write(yml_report)
 
@@ -124,10 +120,10 @@ def generate_reports(data, max_downtime=100, ymlfile=None, subunitfile=None):
                         runnable=False,
                         file_name=svc_name,
                         file_bytes=" {}% higher than threshold".format(
-                            svc_data["percentage"]).encode('ascii'),
+                            svc_data["percentage"]).encode("ascii"),
                         timestamp=stage["completed"],
                         eof=True,
-                        mime_type='text/plain; charset=UTF8'
+                        mime_type="text/plain; charset=UTF8"
                     )
 
 
@@ -150,23 +146,20 @@ def get_mtime(filename):
 
 def get_downtime(client, build, start, end):
     measurements = [
-        "maas_glance", "maas_cinder", "maas_keystone",
-        "maas_heat", "maas_neutron", "maas_nova", "maas_horizon"
+        "maas_glance", "maas_cinder", "maas_keystone", "maas_heat",
+        "maas_neutron", "maas_nova", "maas_horizon", "ping",
     ]
     resolution = 60
 
-    max_downtime_real = (end - start).total_seconds()
-
     start_rounded = start.replace(second=0)
-    end_rounded = end.replace(minute=(end.minute + 1), second=0)
+    end_rounded = end.replace(second=0) + timedelta(minutes=1)
     max_downtime_rounded = (end_rounded - start_rounded).total_seconds()
 
-    total_time_slices = max_downtime_rounded // resolution
     service_downtime = defaultdict(lambda: max_downtime_rounded)
 
     for measurement in measurements:
         query = (
-            "select max(/.*_status/) "
+            "select max(/.*_status|percent_packet_loss/) "
             "from {measurement} "
             "where time > '{start:%Y-%m-%d %H:%M:%S}' "
             "and time < '{end:%Y-%m-%d %H:%M:%S}' "
@@ -188,7 +181,9 @@ def get_downtime(client, build, start, end):
             if name != "time"
         )
         for name, value in elements:
-            key = str(name.replace('max_', '').replace('_status', ''))
+            key = str(name.replace("max_", "").replace("_status", ""))
+            if key == "percent_packet_loss":
+                value = 1 if value == 0 else value
             if value == 1:
                 service_downtime[key] -= resolution
             else:
@@ -213,7 +208,7 @@ def return_time(client, query, delta_seconds=0):
     timestamp_query = client.query(query)
     # Get points is generator, we should just get first
     # point time (string type).
-    fpt_str = next(timestamp_query.get_points())['time']
+    fpt_str = next(timestamp_query.get_points())["time"]
     try:
         fpt = (
             dateutil.parser.parse(fpt_str) +
@@ -284,7 +279,7 @@ def get_build_data(client, build, leapfrog=False):
 
 def main(args):
     client = InfluxDBClient(
-        args.influx_ip, args.influx_port, database='telegraf'
+        args.influx_ip, args.influx_port, database="telegraf"
     )
     stages = get_build_data(
         client, args.build_ref, leapfrog=args.leapfrog_upgrade
