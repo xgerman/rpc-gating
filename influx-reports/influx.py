@@ -143,8 +143,8 @@ def get_mtime(filename):
 
 def get_downtime(client, build, start, end):
     measurements = [
-        "maas_glance", "maas_cinder", "maas_keystone",
-        "maas_heat", "maas_neutron", "maas_nova", "maas_horizon"
+        "maas_glance", "maas_cinder", "maas_keystone", "maas_heat",
+        "maas_neutron", "maas_nova", "maas_horizon", "ping",
     ]
     resolution = 60
 
@@ -156,7 +156,7 @@ def get_downtime(client, build, start, end):
 
     for measurement in measurements:
         query = (
-            "select max(/.*_status/) "
+            "select max(/.*_status|percent_packet_loss/) "
             "from {measurement} "
             "where time > '{start:%Y-%m-%d %H:%M:%S}' "
             "and time < '{end:%Y-%m-%d %H:%M:%S}' "
@@ -179,6 +179,8 @@ def get_downtime(client, build, start, end):
         )
         for name, value in elements:
             key = str(name.replace("max_", "").replace("_status", ""))
+            if key == "percent_packet_loss":
+                value = 1 if value == 0 else value
             if value == 1:
                 service_downtime[key] -= resolution
             else:
