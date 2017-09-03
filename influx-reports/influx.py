@@ -141,10 +141,11 @@ def get_mtime(filename):
         directory = leapfiledir
     else:
         directory = "./"
-    files = iglob(filename)
-    path = os.path.join(directory, next(files))
+
+    paths = iglob(os.path.join(directory, filename))
+    path = next(paths)
     try:
-        next(files)
+        next(paths)
     except StopIteration:
         pass
     else:
