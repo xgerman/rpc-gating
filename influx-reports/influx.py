@@ -2,8 +2,9 @@
 
 import argparse
 from collections import defaultdict
-from datetime import datetime, timedelta
 from copy import deepcopy
+from datetime import datetime, timedelta
+from glob import iglob
 import logging
 import os
 import sys
@@ -40,7 +41,7 @@ LEAPFROG_STAGES = [
                     },
                     {
                         "stage_name": "OSA-OPS/migrations.sh",
-                        "filename": "openstack-ansible-14.2.3-db.leap",
+                        "filename": "openstack-ansible-14.*-db.leap",
                     },
                     {
                         "stage_name": "OSA-OPS/redeploy.sh",
@@ -69,6 +70,10 @@ yaml.Dumper.ignore_aliases = lambda *args: True
 
 
 class InfluxTimestampParseException(Exception):
+    pass
+
+
+class MultipleFilenameMatches(Exception):
     pass
 
 
@@ -136,7 +141,14 @@ def get_mtime(filename):
         directory = leapfiledir
     else:
         directory = "./"
-    path = os.path.join(directory, filename)
+    files = iglob(filename)
+    path = os.path.join(directory, next(files))
+    try:
+        next(files)
+    except StopIteration:
+        pass
+    else:
+        raise MultipleFilenameMatches
     file_stats = os.stat(path)
 
     return datetime.utcfromtimestamp(file_stats.st_mtime).replace(
