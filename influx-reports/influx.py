@@ -102,9 +102,9 @@ def generate_reports(data, max_downtime=100, ymlfile=None, subunitfile=None):
     if subunitfile:
         with SubunitContext(subunitfile) as output:
             for stage in data:
-                for svc_name, svc_data in stage["services_down"].items():
+                for svc_name, svc_data in stage["services_states"].items():
                     status = "fail"
-                    if svc_data["percentage"] < max_downtime:
+                    if svc_data["DOWN percentage"] < max_downtime:
                         status = "success"
                     # Record test start
                     output.status(
@@ -122,7 +122,7 @@ def generate_reports(data, max_downtime=100, ymlfile=None, subunitfile=None):
                         runnable=False,
                         file_name=svc_name,
                         file_bytes=" {}% higher than threshold".format(
-                            svc_data["percentage"]).encode("ascii"),
+                            svc_data["DOWN percentage"]).encode("ascii"),
                         timestamp=stage["completed"],
                         eof=True,
                         mime_type="text/plain; charset=UTF8"
@@ -165,7 +165,7 @@ def get_downtime(client, build, start, end):
     end_rounded = end.replace(second=0) + timedelta(minutes=1)
     max_downtime_rounded = (end_rounded - start_rounded).total_seconds()
 
-    service_downtime = defaultdict(lambda: max_downtime_rounded)
+    service_state = defaultdict(lambda: {"up": 0, "down": 0, "unknown": 0})
 
     for measurement in measurements:
         query = (
@@ -195,17 +195,28 @@ def get_downtime(client, build, start, end):
             if key == "percent_packet_loss":
                 value = 1 if value == 0 else value
             if value == 1:
-                service_downtime[key] -= resolution
-            else:
-                # Ensure all services are added to the defaultdict
-                service_downtime[key]
+                service_state[key]["up"] += resolution
+            elif value == -1:
+                service_state[key]["unknown"] += resolution
+             else:
+                service_state[key]["down"] += resolution
 
     return {
         svc: {
-            "hh:mm:ss": str(timedelta(seconds=secs)),
-            "percentage": round(100 * secs / max_downtime_rounded, 1),
+            "UP hh:mm:ss": str(timedelta(seconds=secs["up"])),
+            "UP percentage": round(
+                100 * secs["up"] / max_downtime_rounded, 1
+            ),
+            "DOWN hh:mm:ss": str(timedelta(seconds=secs["down"])),
+            "DOWN percentage": round(
+                100 * secs["down"] / max_downtime_rounded, 1
+            ),
+            "UNKNOWN hh:mm:ss": str(timedelta(seconds=secs["unknown"])),
+            "UNKNOWN percentage": round(
+                100 * secs["unknown"] / max_downtime_rounded, 1
+            ),
         }
-        for svc, secs in service_downtime.items()
+        for svc, secs in service_state.items()
     }
 
 
@@ -239,7 +250,7 @@ def add_time(client, build, stages, started):
         stage["started"] = started
         stage["completed"] = completed
         stage["duration"] = str(duration)
-        stage["services_down"] = get_downtime(
+        stage["services_states"] = get_downtime(
             client, build, started, completed
         )
         add_time(client, build, stage.get("stages", []), started)
@@ -270,13 +281,13 @@ def get_build_data(client, build, leapfrog=False):
         completed = return_time(
             client, find_last_timestamp_query, delta_seconds=-5
         )
-        services_down = get_downtime(
+        services_states = get_downtime(
             client, build, started, completed
         )
         stages = [
             {
                 "stage_name": "Upgrade",
-                "services_down": services_down,
+                "services_states": services_states,
                 "stages": [],
                 "started": started,
                 "completed": completed,
