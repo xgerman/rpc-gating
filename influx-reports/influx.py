@@ -201,7 +201,7 @@ def get_downtime(client, build, start, end):
                 service_state[key]["up"] += resolution
             elif value == -1:
                 service_state[key]["unknown"] += resolution
-             else:
+            else:
                 service_state[key]["down"] += resolution
 
     return {
