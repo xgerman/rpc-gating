@@ -47,6 +47,7 @@
       failed_when:
         - "{{ containers.rc != 0 }}"
         - "{{ containers.msg != '[Errno 2] No such file or directory' }}"
+      changed_when: false
       register: containers
 
     - name: Grab container data
@@ -76,6 +77,8 @@
         chdir: "{{ artifacts_basedir }}"
       delegate_to: "localhost"
       run_once: yes
+      tags:
+        - skip_ansible_lint
   vars:
     build_tag: "{{ lookup('env','BUILD_TAG') }}"
     artifacts_basename: "artifacts_{{ build_tag }}"
