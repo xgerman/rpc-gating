@@ -371,6 +371,57 @@ def archive_artifacts(String build_type = "AIO"){
     rm -f artifacts_${env.BUILD_TAG}.tar.bz2
     """
   }
+  try{
+    sh """#!/bin/bash
+    echo "Archiving logs and configs..."
+    d="artifacts_\${BUILD_TAG}_old"
+    mkdir -p \$d
+
+    # logs and config from the single use slave
+    mkdir -p \$d/\$HOSTNAME/log
+    cp -rp /openstack/log/\$HOSTNAME-* \$d/\$HOSTNAME/log ||:
+    cp -rp /etc/ \$d/\$HOSTNAME/etc
+    cp -rp /var/log/ \$d/\$HOSTNAME/var_log
+
+    # logs and config from the containers
+    while read c
+    do
+      mkdir -p \$d/\$c/log
+      cp -rp /openstack/log/\$c/* \$d/\$c/log 2>/dev/null ||:
+      cp -rp /var/lib/lxc/\$c/rootfs/etc \$d/\$c 2>/dev/null ||:
+      cp -rp /var/lib/lxc/\$c/delta0/etc \$d/\$c 2>/dev/null ||:
+    done < <(lxc-ls)
+
+    # compress to reduce storage space requirements
+    ARTIFACT_SIZE=\$(du -sh \$d | cut -f1)
+    echo "Compressing \$ARTIFACT_SIZE of artifact files..."
+    tar cjf "\$d".tar.bz2 \$d
+    echo "Compression complete."
+    """
+  } catch (e){
+    print(e)
+    throw(e)
+  } finally{
+    // still worth trying to archiveArtifacts even if some part of
+    // artifact collection failed.
+      print "Uploading artifacts to Cloud Files..."
+      pubcloud.uploadToCloudFiles(
+        container: "jenkins_logs",
+        src: "${env.WORKSPACE}/artifacts_${env.BUILD_TAG}_old.tar.bz2",
+        html_report_dest: "${env.WORKSPACE}/artifacts_report/index.html")
+      publishHTML(
+        allowMissing: true,
+        alwaysLinkToLastBuild: true,
+        keepAll: true,
+        reportDir: 'artifacts_report',
+        reportFiles: 'index.html',
+        reportName: 'Build Artifact Links'
+      )
+    sh """
+    rm -rf artifacts_\${BUILD_TAG}_old
+    rm -f artifacts_${env.BUILD_TAG}_old.tar.bz2
+    """
+  }
 }
 
 List get_cloud_creds(){
