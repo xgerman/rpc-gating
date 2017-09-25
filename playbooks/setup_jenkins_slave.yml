@@ -98,23 +98,23 @@
           tags:
             - pip-install-script
 
-    - block:
-        - name: Install PIP
-          shell: |
-            python /opt/get-pip.py -c /opt/rpc_gating_constraints.txt
-          register: pip_install
-          until: pip_install | success
-          retries: 3
-          delay: 2
+#    - block:
+#        - name: Install PIP
+#          shell: |
+#            python /opt/get-pip.py -c /opt/rpc_gating_constraints.txt
+#          register: pip_install
+#          until: pip_install | success
+#          retries: 3
+#          delay: 2
 
-      rescue:
-        - name: Install PIP (fall back mode)
-          shell: |
-            python /opt/get-pip.py --isolated -c /opt/rpc_gating_constraints.txt
-          register: pip_install_fall_back
-          until: pip_install_fall_back | success
-          retries: 3
-          delay: 2
+#      rescue:
+#        - name: Install PIP (fall back mode)
+#          shell: |
+#            python /opt/get-pip.py --isolated -c /opt/rpc_gating_constraints.txt
+#          register: pip_install_fall_back
+#          until: pip_install_fall_back | success
+#          retries: 3
+#          delay: 2
 
 
       # pip module didn't work here as it couldn't locate the virtualenv binary
