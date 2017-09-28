@@ -66,10 +66,10 @@
     parameters:
       - string:
           name: OSA_OPS_REPO
-          default: https://github.com/git-harry/openstack-ansible-ops
+          default: https://github.com/antonym/openstack-ansible-ops
       - string:
           name: OSA_OPS_BRANCH
-          default: 93ac83d3436fd078500d6fd85ec5078e357f4db4
+          default: a2411d3732844c5673097a4c42b8d945cb44d92b
       - string:
           name: DEFAULT_IMAGE
           default: "{DEFAULT_IMAGE}"
