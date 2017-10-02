@@ -98,26 +98,77 @@
           tags:
             - pip-install-script
 
-    - block:
-        - name: Install PIP
-          shell: |
-            python /opt/get-pip.py -c /opt/rpc_gating_constraints.txt
-          register: pip_install
-          until: pip_install | success
-          retries: 3
-          delay: 2
+#    - block:
+#        - name: Install PIP
+#          shell: |
+#            python /opt/get-pip.py -c /opt/rpc_gating_constraints.txt
+#          register: pip_install
+#          until: pip_install | success
+#          retries: 3
+#          delay: 2
 
-      rescue:
-        - name: Install PIP (fall back mode)
-          shell: |
-            python /opt/get-pip.py --isolated -c /opt/rpc_gating_constraints.txt
-          register: pip_install_fall_back
-          until: pip_install_fall_back | success
-          retries: 3
-          delay: 2
+#      rescue:
+#        - name: Install PIP (fall back mode)
+#          shell: |
+#            python /opt/get-pip.py --isolated -c /opt/rpc_gating_constraints.txt
+#          register: pip_install_fall_back
+#          until: pip_install_fall_back | success
+#          retries: 3
+#          delay: 2
 
+    - name: Fix networking
+      lineinfile:
+        dest: /etc/network/interfaces
+        regexp: ''
+        insertafter: EOF
+        line: 'source /etc/network/interfaces.d/*.cfg'
 
-      # pip module didn't work here as it couldn't locate the virtualenv binary
+    - name: Copy id_rsa.pub to authorized_keys
+      shell: cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+
+    - name: Fix up Public IP
+      replace:
+        dest: /etc/openstack_deploy/openstack_user_config.yml
+        regexp: "external_lb_vip_address:.*"
+        replace: "external_lb_vip_address: {{ ansible_host }}"
+        backup: yes
+    
+    - name: Fix up keystone_service
+      replace:
+        dest: /etc/haproxy/conf.d/keystone_service
+        regexp: "bind.*"
+        replace: "bind {{ ansible_host }}:5000"
+
+    - name: restart server
+      shell: sleep 2 && shutdown -r now
+      async: 1
+      poll: 0
+      ignore_errors: true
+
+    - name: wait for server to come back after reboot
+      wait_for:
+        host: "{{ ansible_host }}"
+        port: 22
+        state: started
+        delay: 120
+        timeout: 300
+      delegate_to: localhost
+
+    - name: Wait an additional amount of time for any remaning startup tasks to finish
+      pause:
+        minutes: 5
+
+    - name: Restart haproxy
+      service:
+        name: haproxy
+        state: restarted
+
+    - name: Run haproxy-install to fix up IP
+      shell: openstack-ansible haproxy-install.yml
+      args:
+        chdir: /opt/rpc-openstack/openstack-ansible/playbooks/
+
+    # pip module didn't work here as it couldn't locate the virtualenv binary
     - name: Start slave
       delegate_to: localhost
       shell: |
