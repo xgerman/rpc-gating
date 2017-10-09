@@ -19,10 +19,6 @@
           branches: "newton.*"
           UPGRADE_FROM_REF: "kilo"
           DEPLOY_TELEGRAF: "yes"
-      - master:
-          branch: master
-          branches: "master"
-          DEPLOY_TELEGRAF: "yes"
     image:
       - trusty:
           IMAGE: "Ubuntu 14.04.5 LTS prepared for RPC deployment"
@@ -87,8 +83,6 @@
         action: minorupgrade
       - series: mitaka
         action: minorupgrade
-      - series: master
-        action: minorupgrade
       # Major upgrades are only run for mitaka
       # for the moment as no other major upgrade
       # testing or tooling has been implemented.
@@ -97,8 +91,6 @@
       - series: liberty
         action: majorupgrade
       - series: newton
-        action: majorupgrade
-      - series: master
         action: majorupgrade
       # Xenial builds are run for newton and above
       # as it is not supported distro before newton.
@@ -132,11 +124,6 @@
       # Xenial using RPC-O.
       - image: xenial
         scenario: ceph
-      # Trusty builds are not executed for master
-      # as Trusty is not a supported distro for
-      # Ocata onwards.
-      - series: master
-        image: trusty
     jobs:
       - 'RPC-AIO_{series}-{image}-{action}-{scenario}-{ztrigger}'
 
@@ -146,9 +133,6 @@
       - newton:
           branch: newton
           branches: "newton.*"
-      - master:
-          branch: master
-          branches: "master"
     image:
       - xenial:
           IMAGE: "Ubuntu 16.04.2 LTS prepared for RPC deployment"
