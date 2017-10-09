@@ -29,7 +29,7 @@ void install_ansible(){
         ]
       ]
     )
-    sleep(time: 10, unit: "SECONDS")
+    sleep(time: 30, unit: "SECONDS")
     retry(3){
       try{
         download_venv()
