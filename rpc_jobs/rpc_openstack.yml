@@ -3,16 +3,19 @@
     repo_url: "https://github.com/rcbops/rpc-openstack"
     branches:
       - "master"
+      - "newton.*"
     image:
+      - trusty:
+          IMAGE: "Ubuntu 14.04.5 LTS prepared for RPC deployment"
       - xenial:
           IMAGE: "Ubuntu 16.04.2 LTS prepared for RPC deployment"
-          FLAVOR: "performance2-15"
-          REGIONS: "DFW"
-          FALLBACK_REGIONS: "IAD"
     scenario:
       - "ironic"
       - "swift"
     action:
-      - "deploy"
+      - deploy:
+          FLAVOR: "performance2-15"
+          REGIONS: "DFW"
+          FALLBACK_REGIONS: "IAD"
     jobs:
       - 'PR_{name}-{image}-{scenario}-{action}'

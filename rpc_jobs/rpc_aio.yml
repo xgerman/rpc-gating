@@ -14,16 +14,9 @@
           branch: mitaka
           branches: "mitaka.*"
           UPGRADE_FROM_REF: "liberty"
-      - newton:
-          branch: newton
-          branches: "newton.*"
-          UPGRADE_FROM_REF: "kilo"
-          DEPLOY_TELEGRAF: "yes"
     image:
       - trusty:
           IMAGE: "Ubuntu 14.04.5 LTS prepared for RPC deployment"
-      - xenial:
-          IMAGE: "Ubuntu 16.04.2 LTS prepared for RPC deployment"
     action:
       - deploy:
           ACTION_STAGES: >-
@@ -38,17 +31,6 @@
             Prepare Kibana Selenium,
             Kibana Tests,
             Major Upgrade
-      # A minimum set of stages is chosen deliberately
-      # to test the convergance of the upgrade itself
-      # without additional complexity. Once this is
-      # working well, additional stages may be added.
-      - minorupgrade:
-          ACTION_STAGES: >-
-            Minor Upgrade
-          # NOTE: Once the newton stabilization branch has been created
-          #       (newton-14.2 or similar), we'll need to find a way to
-          #       set this differently depending on the newton series.
-          UPGRADE_FROM_REF: "r14.1.0"
     scenario:
       - swift
       - ceph:
@@ -90,70 +72,12 @@
         action: majorupgrade
       - series: liberty
         action: majorupgrade
-      - series: newton
-        action: majorupgrade
-      # Xenial builds are run for newton and above
-      # as it is not supported distro before newton.
-      - series: kilo
-        image: xenial
-      - series: liberty
-        image: xenial
-      - series: mitaka
-        image: xenial
       # Ceph builds are not run for kilo at this time
       # as ceph deployment is not supported for
       # newton (yet) and the purpose of executing
       # kilo builds is for the leapfrog upgrade tests.
       - series: kilo
         scenario: ceph
-      # Ceph cluster builds are not supported for
-      # newton. In the future ceph will be a supported
-      # scenario for newton onwards, but it will only
-      # consume the cluster, not deploy it. At that
-      # time the scenario can be added back again.
-      - series: newton
-        scenario: ceph
-      # Ceph builds are not tested for minor upgrades
-      # at this time due to the minor upgrades only being
-      # targeted at newton or above, which do not support
-      # the ceph scenario.
-      - action: minorupgrade
-        scenario: ceph
-      # Ceph builds are not run for Xenial at this time
-      # as ceph cluster deployment is not supported for
-      # Xenial using RPC-O.
-      - image: xenial
-        scenario: ceph
-    jobs:
-      - 'RPC-AIO_{series}-{image}-{action}-{scenario}-{ztrigger}'
-
-- project:
-    name: 'RPC-AIO-Ironic-Jobs'
-    series:
-      - newton:
-          branch: newton
-          branches: "newton.*"
-    image:
-      - xenial:
-          IMAGE: "Ubuntu 16.04.2 LTS prepared for RPC deployment"
-    action:
-      - deploy:
-          ACTION_STAGES: >-
-            Install Tempest,
-            Tempest Tests,
-            Prepare Kibana Selenium,
-            Kibana Tests
-    scenario:
-      - ironic-multihypervisor:
-          DEPLOY_IRONIC: "yes"
-          TRIGGER_PR_PHRASE_ONLY: true
-    ztrigger:
-      - pr:
-          CRON: ""
-          TRIGGER_USER_VARS: "maas_use_api: false"
-      - periodic:
-          branches: "do_not_build_on_pr"
-          NUM_TO_KEEP: 10
     jobs:
       - 'RPC-AIO_{series}-{image}-{action}-{scenario}-{ztrigger}'
 
